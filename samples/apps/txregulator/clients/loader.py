@@ -19,6 +19,7 @@ def run(args):
         hosts, args.build_dir, args.debug_nodes, args.perf_nodes, pdb=args.pdb
     ) as network:
         primary, others = network.start_and_join(args)
+
         if args.run_poll:
             with open("revealed.log", "a+") as stdout:
                 subprocess.Popen(
@@ -101,7 +102,7 @@ def run(args):
         bank_id = banks[0][0] + 1
         LOG.info(f"Loading scenario file as bank {bank_id}")
 
-        with primary.user_client(format="msgpack", user_id=regulator[0] + 1) as reg_c:
+        with primary.user_client(format="msgpack") as reg_c:
 
             with primary.user_client(
                 format="msgpack", user_id=bank_id, log_file=None
@@ -120,9 +121,10 @@ def run(args):
                             ),
                             "src_country": row["src_country"],
                             "dst_country": row["dst_country"],
+                            "display_country": row["display_country"]
                         }
 
-                        check(c.rpc("TX_record", json_tx), result=tx_id)
+                        c.rpc("TX_record", json_tx)
                         print(json.dumps(json_tx))
                         tx_id += 1
 

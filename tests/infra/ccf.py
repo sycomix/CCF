@@ -124,8 +124,8 @@ class Network:
 
         LOG.info("Starting nodes on {}".format(hosts))
 
-        self.add_members([1, 2, 3])
-        self.add_users([1, 2, 3])
+        self.add_members([1, 2, 3, 4, 5, 6])
+        self.add_users([1, 2, 3, 4, 5, 6])
 
         if args.app_script:
             infra.proc.ccall("cp", args.app_script, args.build_dir).check_returncode()

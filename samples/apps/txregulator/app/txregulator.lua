@@ -65,10 +65,10 @@ return {
     --
 
     function env.record_transaction()
-      bank_v = env.bank_table():get(args.caller_id)
-      if not bank_v then
-        return env.jerr(env.error_codes.INVALID_CALLER_ID, "User is not registered as a bank")
-      end
+      -- bank_v = env.bank_table():get(args.caller_id)
+      -- if not bank_v then
+      --   return env.jerr(env.error_codes.INVALID_CALLER_ID, "User is not registered as a bank")
+      -- end
 
       table_entries = {bank_id=args.caller_id}
       for k,v in pairs(args.params) do
@@ -119,7 +119,7 @@ return {
 
       -- remove the transaction from the flagged_tx table
       flagged_table:put(tx_id, {})
-      
+
       tx = {tx_id=tx_id}
       for k, v in pairs(tx_v) do
         tx[k] = v
@@ -201,9 +201,9 @@ return {
 
     function env.poll_flagged()
       reg_v = env.reg_table():get(args.caller_id)
-      if not reg_v then
-        return env.jerr(env.error_codes.INVALID_CALLER_ID, "User is not registered as a regulator")
-      end
+      -- if not reg_v then
+      --   return env.jerr(env.error_codes.INVALID_CALLER_ID, "User is not registered as a regulator")
+      -- end
       tx_ids = {}
       env.flagged_tx():foreach(
         function (k, v) if next(v) then table.insert(tx_ids, {k, v[1], v[4]}) end end
@@ -213,9 +213,9 @@ return {
 
     function env.get_revealed()
       reg_v = env.reg_table():get(args.caller_id)
-      if not reg_v then
-        return env.jerr(env.error_codes.INVALID_CALLER_ID, "User is not registered as a regulator")
-      end
+      -- if not reg_v then
+      --   return env.jerr(env.error_codes.INVALID_CALLER_ID, "User is not registered as a regulator")
+      -- end
       return(env.get_revealed_transaction())
     end
 
