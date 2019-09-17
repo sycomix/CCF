@@ -8,7 +8,9 @@
 #include <cstring>
 #include <ctime>
 #include <fmt/format.h>
-#include <fmt/time.h>
+#ifndef INSIDE_ENCLAVE
+#  include <fmt/time.h>
+#endif
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -31,6 +33,7 @@ namespace logger
 
   static constexpr size_t ns_per_s = 1'000'000'000;
 
+#ifndef INSIDE_ENCLAVE
   class AbstractLogger
   {
   protected:
@@ -176,6 +179,7 @@ namespace logger
       std::cout << log_line << std::flush;
     }
   };
+#endif
 
   class config
   {
@@ -199,6 +203,7 @@ namespace logger
       return {};
     }
 
+#ifndef INSIDE_ENCLAVE
     static inline std::vector<std::unique_ptr<AbstractLogger>>& loggers()
     {
       static std::vector<std::unique_ptr<AbstractLogger>> the_loggers;
@@ -210,6 +215,7 @@ namespace logger
       }
       return the_loggers;
     }
+#endif
 
     static inline Level& level()
     {
