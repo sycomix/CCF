@@ -6,7 +6,7 @@
 #include "node/rpc/nodeinterface.h"
 #include "node/rpc/userfrontend.h"
 
-#include <fmt/format_header_only.h>
+#include <fmt/format.h>
 #include <valijson/adapters/nlohmann_json_adapter.hpp>
 #include <valijson/schema.hpp>
 #include <valijson/schema_parser.hpp>

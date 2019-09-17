@@ -7,7 +7,7 @@
 #include <chrono>
 #include <cstring>
 #include <ctime>
-#include <fmt/format_header_only.h>
+#include <fmt/format.h>
 #include <fmt/time.h>
 #include <fstream>
 #include <iostream>

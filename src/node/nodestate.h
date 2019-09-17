@@ -23,7 +23,7 @@
 #include <atomic>
 #include <ccf_t.h>
 #include <chrono>
-#include <fmt/format_header_only.h>
+#include <fmt/format.h>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <unordered_set>

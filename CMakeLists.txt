@@ -11,6 +11,10 @@ project(ccf C CXX)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
 
+add_subdirectory(3rdparty/doctest)
+add_subdirectory(3rdparty/fmt)
+add_subdirectory(3rdparty/nlohmann)
+
 set(TEST_HOST_LOGGING_LEVEL "info")
 set(ENV{BETTER_EXCEPTIONS} 1)
 

@@ -17,7 +17,7 @@
 #include "rpcexception.h"
 #include "serialization.h"
 
-#include <fmt/format_header_only.h>
+#include <fmt/format.h>
 #include <utility>
 #include <vector>
 

@@ -3,7 +3,7 @@
 #pragma once
 #include "json_schema.h"
 
-#include <fmt/format_header_only.h>
+#include <fmt/format.h>
 #include <sstream>
 
 template <typename T>
