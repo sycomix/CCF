@@ -9,11 +9,19 @@ include(${CCF_DIR}/cmake/preproject.cmake)
 
 project(ccf C CXX)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
-
 add_subdirectory(3rdparty/doctest)
 add_subdirectory(3rdparty/fmt)
 add_subdirectory(3rdparty/nlohmann)
+
+# Would prefer to use target_link_libraries, but these are essentially global
+# dependencies. If we build a core library that other systems properly link
+# against, this can be removed
+link_libraries(
+  fmt::fmt_header_only
+  nlohmann_json::nlohmann_json
+)
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common.cmake)
 
 set(TEST_HOST_LOGGING_LEVEL "info")
 set(ENV{BETTER_EXCEPTIONS} 1)

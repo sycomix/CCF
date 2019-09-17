@@ -475,10 +475,12 @@ function(add_unit_test name)
     ${CCFCRYPTO_INC})
   enable_coverage(${name})
   target_link_libraries(${name} PRIVATE
-      -stdlib=libc++
-      -lc++
-      -lc++abi
-  ccfcrypto.host)
+    -stdlib=libc++
+    -lc++
+    -lc++abi
+    ccfcrypto.host
+    doctest::doctest
+  )
 
   use_client_mbedtls(${name})
   add_san(${name})
