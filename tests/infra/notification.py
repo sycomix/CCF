@@ -19,11 +19,19 @@ class PostQueueRequestHandler(http.server.BaseHTTPRequestHandler):
         super(PostQueueRequestHandler, self).__init__(request, client_address, server)
 
     def do_POST(self):
+        LOG.trace("Received POST message. Headers: {}", self.headers)
         self.send_response(201)
         self.end_headers()
         content_length = int(self.headers["Content-Length"])
         body = self.rfile.read(content_length)
-        if callable(self.checker) and not self.checker(body):
+        if len(body) < content_length:
+            LOG.error(
+                "Notification Content-Length is {}, but was only able to read {} bytes",
+                content_length,
+                len(body),
+            )
+            self.error_queue.put(body)
+        elif callable(self.checker) and not self.checker(body):
             LOG.error(f"Notification is not in expected format: {body}")
             self.error_queue.put(body)
         else:
