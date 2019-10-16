@@ -25,16 +25,5 @@ namespace enclave
     // Used by rpcendpoint to process incoming client RPCs
     virtual std::vector<uint8_t> process(
       RPCContext& ctx, const std::vector<uint8_t>& input) = 0;
-
-    // Used by PBFT to execute commands
-    struct ProcessPbftResp
-    {
-      std::vector<uint8_t> result;
-      crypto::Sha256Hash merkle_root;
-      kv::Version version;
-    };
-
-    virtual ProcessPbftResp process_pbft(
-      RPCContext& ctx, const std::vector<uint8_t>& input) = 0;
   };
 }

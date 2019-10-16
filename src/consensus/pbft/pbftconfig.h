@@ -110,10 +110,18 @@ namespace pbft
 
       auto handler = this->rpc_map->find(ccf::ActorsType(request.actor));
       if (!handler.has_value())
+      {
         throw std::logic_error(
           "No frontend associated with actor " + std::to_string(request.actor));
+      }
 
-      auto frontend = handler.value();
+      auto frontend =
+        dynamic_cast<ccf::ForwardedRpcHandler*>(handler.value().get());
+      if (!frontend)
+      {
+        LOG_FAIL_FMT("No frontend {} to execute PBFT request", request.actor);
+        return 1;
+      }
 
       enclave::RPCContext ctx(
         enclave::InvalidSessionId,
@@ -121,7 +129,7 @@ namespace pbft
         ccf::ActorsType(request.actor),
         request.caller_cert);
 
-      auto rep = frontend->process_pbft(ctx, request.request);
+      auto rep = frontend->process_forwarded(ctx, request.request);
 
       static_assert(sizeof(info.merkle_root) == sizeof(crypto::Sha256Hash));
       std::copy(

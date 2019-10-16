@@ -8,13 +8,27 @@
 
 namespace ccf
 {
+  // Used by PBFT to execute commands
+  struct ProcessPbftResp
+  {
+    std::vector<uint8_t> result;
+    crypto::Sha256Hash merkle_root;
+    kv::Version version;
+  };
+
   class ForwardedRpcHandler
   {
   public:
     virtual ~ForwardedRpcHandler() {}
 
-    virtual std::vector<uint8_t> process_forwarded(
-      enclave::RPCContext& fwd_ctx, const std::vector<uint8_t>& input) = 0;
+    virtual
+#ifdef PBFT
+      ProcessPbftResp
+#else
+      std::vector<uint8_t>
+#endif
+      process_forwarded(
+        enclave::RPCContext& fwd_ctx, const std::vector<uint8_t>& input) = 0;
   };
 
   template <typename ChannelProxy>
@@ -155,6 +169,7 @@ namespace ccf
 
     void recv_message(const uint8_t* data, size_t size)
     {
+#ifndef PBFT
       serialized::skip(data, size, sizeof(NodeMsgType));
 
       auto forwarded_msg = serialized::peek<ForwardedMsg>(data, size);
@@ -219,6 +234,9 @@ namespace ccf
           break;
         }
       }
+#else
+      LOG_FAIL_FMT("Forwarded message ignored with PBFT");
+#endif
     }
   };
 }

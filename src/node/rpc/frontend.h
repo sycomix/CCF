@@ -651,77 +651,6 @@ namespace ccf
 #endif
     }
 
-    /** Process a serialised command with the associated RPC context via PBFT
-     *
-     * @param ctx Context for this RPC
-     * @param input Serialised JSON RPC
-     */
-    ProcessPbftResp process_pbft(
-      enclave::RPCContext& ctx, const std::vector<uint8_t>& input) override
-    {
-      // TODO(#PBFT): Refactor this with process_forwarded().
-      Store::Tx tx;
-      crypto::Sha256Hash merkle_root;
-      kv::Version version = kv::NoVersion;
-
-      auto pack = detect_pack(input);
-      if (!pack.has_value())
-      {
-        return {jsonrpc::pack(
-                  jsonrpc::error_response(
-                    0,
-                    jsonrpc::StandardErrorCodes::INVALID_REQUEST,
-                    "Empty PBFT request."),
-                  jsonrpc::Pack::Text),
-                merkle_root};
-      }
-
-      auto rpc = unpack_json(input, pack.value());
-      if (!rpc.first)
-      {
-        return {jsonrpc::pack(rpc.second, pack.value()), merkle_root};
-      }
-
-      // Strip signature
-      auto rpc_ = &rpc.second;
-      SignedReq signed_request(rpc.second);
-      if (rpc_->find(jsonrpc::SIG) != rpc_->end())
-      {
-        auto& req = rpc_->at(jsonrpc::REQ);
-        rpc_ = &req;
-      }
-      auto& unsigned_rpc = *rpc_;
-      bool has_updated_merkle_root = false;
-
-      auto cb = [&merkle_root, &version, &has_updated_merkle_root](
-                  kv::TxHistory::ResultCallbackArgs args) -> bool {
-        merkle_root = args.merkle_root;
-        if (args.version != kv::NoVersion)
-        {
-          version = args.version;
-        }
-        has_updated_merkle_root = true;
-        return true;
-      };
-      history->register_on_result(cb);
-
-      auto rep =
-        process_json(ctx, tx, ctx.fwd->caller_id, unsigned_rpc, signed_request);
-
-      history->clear_on_result();
-
-      if (!has_updated_merkle_root)
-      {
-        merkle_root = history->get_root();
-      }
-
-      // TODO(#PBFT): Add RPC response to history based on Request ID
-      // if (history)
-      //   history->add_response(reqid, rv);
-
-      return {jsonrpc::pack(rep.value(), pack.value()), merkle_root, version};
-    }
-
     /** Process a serialised input forwarded from another node
      *
      * This function assumes that ctx contains the caller_id as read by the
@@ -732,7 +661,12 @@ namespace ccf
      *
      * @return Serialised reply to send back to forwarder node
      */
-    std::vector<uint8_t> process_forwarded(
+#ifdef PBFT
+    ProcessPbftResp
+#else
+    std::vector<uint8_t>
+#endif
+    process_forwarded(
       enclave::RPCContext& ctx, const std::vector<uint8_t>& input) override
     {
       if (!ctx.fwd.has_value())
@@ -742,16 +676,30 @@ namespace ccf
       }
 
       Store::Tx tx;
+#ifdef PBFT
+      crypto::Sha256Hash merkle_root;
+      kv::Version version = kv::NoVersion;
+#endif
 
       ctx.pack = detect_pack(input);
       if (!ctx.pack.has_value())
       {
+#ifdef PBFT
+        return {jsonrpc::pack(
+                  jsonrpc::error_response(
+                    0,
+                    jsonrpc::StandardErrorCodes::INVALID_REQUEST,
+                    "Empty PBFT request."),
+                  jsonrpc::Pack::Text),
+                merkle_root};
+#else
         return jsonrpc::pack(
           jsonrpc::error_response(
             0,
             jsonrpc::StandardErrorCodes::INVALID_REQUEST,
             "Empty forwarded request."),
           jsonrpc::Pack::Text);
+#endif
       }
 
       if constexpr (!std::is_same_v<CT, void>)
@@ -762,12 +710,23 @@ namespace ccf
         auto caller = callers_view->get(ctx.fwd->caller_id);
         if (!caller.has_value())
         {
+#ifdef PBFT
+          return {jsonrpc::pack(
+                    jsonrpc::error_response(
+                      0,
+                      jsonrpc::CCFErrorCodes::INVALID_CALLER_ID,
+                      "No corresponding caller entry exists."),
+                    ctx.pack.value()),
+                  merkle_root};
+#else
           return jsonrpc::pack(
             jsonrpc::error_response(
               0,
               jsonrpc::CCFErrorCodes::INVALID_CALLER_ID,
               "No corresponding caller entry exists."),
             ctx.pack.value());
+
+#endif
         }
         ctx.caller_cert = caller.value().cert;
       }
@@ -775,7 +734,11 @@ namespace ccf
       auto rpc = unpack_json(input, ctx.pack.value());
       if (!rpc.first)
       {
+#ifdef PBFT
+        return {jsonrpc::pack(rpc.second, ctx.pack.value()), merkle_root};
+#else
         return jsonrpc::pack(rpc.second, ctx.pack.value());
+#endif
       }
 
       // Unwrap signed request if necessary and store client signature. It is
@@ -793,6 +756,21 @@ namespace ccf
       }
       auto& unsigned_rpc = *rpc_;
 
+#ifdef PBFT
+      bool has_updated_merkle_root = false;
+      auto cb = [&merkle_root, &version, &has_updated_merkle_root](
+                  kv::TxHistory::ResultCallbackArgs args) -> bool {
+        merkle_root = args.merkle_root;
+        if (args.version != kv::NoVersion)
+        {
+          version = args.version;
+        }
+        has_updated_merkle_root = true;
+        return true;
+      };
+      history->register_on_result(cb);
+#endif
+
       auto rep =
         process_json(ctx, tx, ctx.fwd->caller_id, unsigned_rpc, signed_request);
       if (!rep.has_value())
@@ -802,7 +780,23 @@ namespace ccf
         throw std::logic_error("Forwarded RPC cannot be forwarded");
       }
 
+#ifdef PBFT
+      // TODO(#PBFT): Add RPC response to history based on Request ID
+      // if (history)
+      //   history->add_response(reqid, rv);
+
+      if (!has_updated_merkle_root)
+      {
+        merkle_root = history->get_root();
+      }
+
+      history->clear_on_result();
+
+      return {
+        jsonrpc::pack(rep.value(), ctx.pack.value()), merkle_root, version};
+#else
       return jsonrpc::pack(rep.value(), ctx.pack.value());
+#endif
     }
 
     std::optional<nlohmann::json> process_json(
