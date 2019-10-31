@@ -71,7 +71,6 @@ def network(
         except Exception:
             if pdb:
                 import pdb
-
                 pdb.set_trace()
             else:
                 raise
@@ -238,6 +237,10 @@ class Network:
         LOG.success("All nodes joined recovered public network")
 
         return primary, self.nodes[1:]
+
+    def recovery(self):
+
+
 
     def create_node(self, host, node_id=None, debug=False, perf=False):
         if node_id is None:
@@ -432,6 +435,7 @@ class Network:
         # related to the voting mechanism
         majority_count = int(len(self.members) / 2 + 1)
         for i, member in enumerate(self.members):
+            LOG.error(i)
             if i >= majority_count:
                 break
             res = self.vote(
