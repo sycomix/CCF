@@ -92,6 +92,13 @@ def wait_for_state(node, state):
         raise TimeoutError("Timed out waiting for ledger to be read")
 
 
+def test_recovery(network):
+
+    # issue transactions
+    # stop
+    # new_network =
+    # return new_network
+
 def run(args):
     hosts = ["localhost", "localhost"]
     ledger = None
@@ -100,6 +107,10 @@ def run(args):
     with infra.ccf.network(
         hosts, args.build_dir, args.debug_nodes, args.perf_nodes, pdb=args.pdb
     ) as network:
+
+
+
+        test_recovery(network)
         primary, backups = network.start_and_join(args)
         txs = Txs(args.msgs_per_recovery)
 
@@ -112,7 +123,7 @@ def run(args):
             network.wait_for_node_commit_sync()
             check_nodes_have_msgs(backups, txs)
 
-
+    # network.
 
         # Issue transactions
         # Recover:
@@ -142,6 +153,10 @@ def run(args):
 
         #     ledger = primary.remote.get_ledger()
         #     sealed_secrets = primary.remote.get_sealed_secrets()
+
+    network.close()
+
+
 
     # for recovery_idx in range(args.recovery):
     #     with infra.ccf.network(
