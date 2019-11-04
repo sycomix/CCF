@@ -486,6 +486,13 @@ namespace ccf
 
       Store::Tx tx;
 
+      auto caller_pem =
+        tls::make_verifier(
+          std::vector<uint8_t>(ctx.session.caller_cert))
+          ->cert_pem();
+
+      LOG_DEBUG_FMT("CERT: RPC called with caller_cert: {}", caller_pem.str());
+
       // Retrieve id of caller
       std::optional<CallerId> caller_id;
       if (ctx.is_create_request)
@@ -688,6 +695,8 @@ namespace ccf
         auto caller = callers_view->get(ctx.session.fwd->caller_id);
         if (!caller.has_value())
         {
+          LOG_DEBUG_FMT("CERT: forwarded RPC with invalid caller id: {}", ctx.session.fwd->caller_id);
+
           return jsonrpc::pack(
             jsonrpc::error_response(
               0,
