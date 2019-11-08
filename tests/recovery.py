@@ -118,7 +118,8 @@ def test(network, args):
 
 
 def run(args):
-    hosts = ["localhost", "localhost"]
+    # hosts = ["localhost", "localhost"]
+    hosts = ["localhost"]
 
     with infra.ccf.network(
         hosts, args.build_dir, args.debug_nodes, args.perf_nodes, pdb=args.pdb

@@ -163,6 +163,9 @@ namespace asynchost
 
       if (fwrite(data, size, 1, file) != 1)
         throw std::logic_error("Failed to write to file");
+
+      // TODO: Only for signautres?
+      fflush(file);
     }
 
     void truncate(size_t last_idx)
