@@ -158,6 +158,7 @@ def run(build_directory, get_command, args):
                         LOG.info(f"Rates:\n{tx_rates}")
                         tx_rates.save_results(args.metrics_file)
 
-            except Exception:
+            except Exception as e:
                 for remote_client in clients:
                     remote_client.stop()
+                raise RuntimeError(f"Terminating due to error: {e}")
