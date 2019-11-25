@@ -25,6 +25,8 @@ namespace ccf
     static constexpr auto GET_SCHEMA = "getSchema";
     static constexpr auto GET_RECEIPT = "getReceipt";
     static constexpr auto VERIFY_RECEIPT = "verifyReceipt";
+    static constexpr auto COMMIT_INFO = "commitInfo";
+    static constexpr auto COMMIT_STATUS = "commitStatus";
   };
 
   struct MemberProcs

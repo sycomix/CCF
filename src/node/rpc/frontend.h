@@ -520,6 +520,27 @@ namespace ccf
             "Unable to verify receipt");
         };
 
+      auto commit_status = [this](Store::Tx& tx, const nlohmann::json& params) {
+        update_consensus();
+        if (consensus != nullptr)
+        {
+          // TODO: must have a single call for current/commit
+          // retry if rollback in between?
+          auto p = tables.current_version();
+          auto pt = consensus->get_view(p);
+
+          auto c = tables.commit_version();
+          auto pc = consensus->get_view(c);
+          
+          const CommitStatus::Out out{{p, pt}, {c, pc}};
+          return jsonrpc::success(out);
+        }
+
+        return jsonrpc::error(
+          jsonrpc::StandardErrorCodes::INTERNAL_ERROR,
+          "Failed to get commit status from Consensus");
+      };
+
       install_with_auto_schema<GetCommit>(
         GeneralProcs::GET_COMMIT, get_commit, Read);
       install_with_auto_schema<void, GetMetrics::Out>(
@@ -538,6 +559,8 @@ namespace ccf
         GeneralProcs::GET_RECEIPT, get_receipt, Read);
       install_with_auto_schema<VerifyReceipt>(
         GeneralProcs::VERIFY_RECEIPT, verify_receipt, Read);
+      install_with_auto_schema<void, CommitStatus::Out>(
+        GeneralProcs::COMMIT_STATUS, commit_status, Read);
     }
 
     void set_sig_intervals(size_t sig_max_tx_, size_t sig_max_ms_) override

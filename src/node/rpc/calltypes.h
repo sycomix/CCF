@@ -24,6 +24,37 @@ namespace ccf
     };
   };
 
+  struct CommitId
+  {
+    int64_t version;
+    uint64_t view;
+  };
+
+  struct CommitInfo
+  {
+    struct In
+    {
+      CommitId id;
+      bool receipt;
+    };
+
+    struct Out
+    {
+      // TODO: enum?
+      std::string status = {};
+      std::optional<std::vector<std::uint8_t>> receipt = {};
+    };
+  };
+
+  struct CommitStatus
+  {
+    struct Out
+    {
+      CommitId pending;
+      CommitId committed;
+    };
+  };
+
   struct GetMetrics
   {
     struct HistogramResults

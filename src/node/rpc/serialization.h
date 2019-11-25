@@ -84,4 +84,9 @@ namespace ccf
   DECLARE_JSON_REQUIRED_FIELDS(VerifyReceipt::In, receipt)
   DECLARE_JSON_TYPE(VerifyReceipt::Out)
   DECLARE_JSON_REQUIRED_FIELDS(VerifyReceipt::Out, valid)
+
+  DECLARE_JSON_TYPE(CommitId)
+  DECLARE_JSON_REQUIRED_FIELDS(CommitId, version, view)
+  DECLARE_JSON_TYPE(CommitStatus::Out)
+  DECLARE_JSON_REQUIRED_FIELDS(CommitStatus::Out, pending, committed)
 }
