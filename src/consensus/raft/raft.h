@@ -53,7 +53,8 @@ namespace raft
     {
       Leader,
       Follower,
-      Candidate
+      Candidate,
+      LeaderElect
     };
 
     struct NodeState
@@ -118,6 +119,18 @@ namespace raft
     // Randomness
     std::uniform_int_distribution<int> distrib;
     std::default_random_engine rand;
+
+    Index last_verifiable_index() const
+    {
+      if (committable_indices.empty())
+      {
+        return commit_idx;
+      }
+      else
+      {
+        return committable_indices.back();
+      }
+    }
 
   public:
     static constexpr size_t append_entries_size_limit = 20000;
@@ -779,11 +792,12 @@ namespace raft
     {
       LOG_INFO_FMT("Send request vote from {} to {}", local_id, to);
 
+      auto last_verified = last_verifiable_index();
       RequestVote rv = {raft_request_vote,
                         local_id,
                         current_term,
-                        commit_idx,
-                        get_term_internal(commit_idx)};
+                        last_verified,
+                        get_term_internal(last_verified)};
 
       channels->send_authenticated(ccf::NodeMsgType::consensus_msg, to, rv);
     }
@@ -840,11 +854,13 @@ namespace raft
       }
 
       // If the candidate's log is at least as up-to-date as ours, vote yes
-      auto last_commit_term = get_term_internal(commit_idx);
+      auto last_verified_index = last_verifiable_index();
+      auto last_verified_term = get_term_internal(last_verified_index);
 
-      auto answer = (r.last_commit_term > last_commit_term) ||
-        ((r.last_commit_term == last_commit_term) &&
-         (r.last_commit_idx >= commit_idx));
+      // TODO: compare commit indices
+      auto answer = (r.last_verified_term > last_verified_term) ||
+        ((r.last_verified_term == last_verified_term) &&
+         (r.last_verified_index >= last_verified_index));
 
       if (answer)
       {
@@ -958,15 +974,50 @@ namespace raft
         send_request_vote(it->first);
     }
 
-    void become_leader()
+    void become_leader_elect()
     {
-      // Discard any un-committed updates we may hold,
+      // Discard any un-committable updates we may hold,
       // since we have no signature for them. Except at startup,
       // where we do not want to roll back the genesis transaction.
       if (commit_idx)
-        rollback(commit_idx);
+        rollback(last_verifiable_index());
 
-      committable_indices.clear();
+      state = LeaderElect;
+      leader_id = local_id;
+
+      using namespace std::chrono_literals;
+      timeout_elapsed = 0ms;
+
+      LOG_INFO_FMT("Becoming LeaderElect {}: {}", local_id, current_term);
+
+      // Immediately commit if there are no other nodes.
+      if (nodes.size() == 0)
+      {
+        commit(last_idx);
+        return;
+      }
+
+      // Reset next, match, and sent indices for all nodes.
+      auto next = last_idx + 1;
+
+      for (auto it = nodes.begin(); it != nodes.end(); ++it)
+      {
+        it->second.match_idx = 0;
+        it->second.sent_idx = next - 1;
+
+        // Send an empty append_entries to all nodes.
+        send_append_entries(it->first, next);
+      }
+    }
+
+    void become_leader()
+    {
+      // Discard any un-committable updates we may hold,
+      // since we have no signature for them. Except at startup,
+      // where we do not want to roll back the genesis transaction.
+      if (commit_idx)
+        rollback(last_verifiable_index());
+
       state = Leader;
       leader_id = local_id;
 
@@ -1005,10 +1056,7 @@ namespace raft
       voted_for = NoNode;
       votes_for_me.clear();
 
-      // Rollback unreplicated commits.
-      rollback(commit_idx);
-      committable_indices.clear();
-
+      rollback(last_verifiable_index());
       LOG_INFO_FMT("Becoming follower {}: {}", local_id, current_term);
     }
 
@@ -1018,7 +1066,7 @@ namespace raft
       votes_for_me.insert(from);
 
       if (votes_for_me.size() >= ((nodes.size() + 1) / 2) + 1)
-        become_leader();
+        become_leader_elect();
     }
 
     void update_commit()
