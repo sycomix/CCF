@@ -213,12 +213,13 @@ namespace ccf
   class Receipt
   {
   private:
-    uint64_t index;
     uint32_t max_index;
     crypto::Sha256Hash root;
     hash_vec* path;
 
   public:
+    uint64_t index;
+
     Receipt()
     {
       path = init_path();
@@ -286,8 +287,6 @@ namespace ccf
     merkle_tree* tree;
 
   public:
-    MerkleTreeHistory(MerkleTreeHistory const&) = delete;
-
     MerkleTreeHistory(const std::vector<uint8_t>& serialised)
     {
       tree = mt_deserialize(
@@ -304,6 +303,13 @@ namespace ccf
     ~MerkleTreeHistory()
     {
       mt_free(tree);
+    }
+
+    MerkleTreeHistory(const MerkleTreeHistory& other)
+    {
+      auto r = other.get_root();
+      uint8_t* h = const_cast<uint8_t*>(r.h);
+      tree = mt_create(h);
     }
 
     void append(const crypto::Sha256Hash& hash)
@@ -369,8 +375,12 @@ namespace ccf
   {
     Store& store;
     NodeId id;
-    T full_state_tree;
+    std::unique_ptr<T> full_state_tree = nullptr;
     T replicated_state_tree;
+
+    kv::Version start_version = 1;
+    kv::Version version = 0;
+    std::map<kv::Version, std::unique_ptr<T>> historical_trees;
 
     tls::KeyPair& kp;
     Signatures& signatures;
@@ -395,7 +405,8 @@ namespace ccf
       id(id_),
       kp(kp_),
       signatures(sig_),
-      nodes(nodes_)
+      nodes(nodes_),
+      full_state_tree(new T())
     {}
 
     bool is_replicated_tree_enabled()
@@ -439,7 +450,7 @@ namespace ccf
 
     crypto::Sha256Hash get_full_state_root() override
     {
-      return full_state_tree.get_root();
+      return full_state_tree->get_root();
     }
 
     crypto::Sha256Hash get_replicated_state_root() override
@@ -463,7 +474,8 @@ namespace ccf
     {
       crypto::Sha256Hash h({{all_data, all_data_size}});
       log_hash(h, APPEND);
-      full_state_tree.append(h);
+      full_state_tree->append(h);
+      version++;
 
       if (is_replicated_tree_enabled())
       {
@@ -495,7 +507,7 @@ namespace ccf
         return false;
       }
       tls::VerifierPtr from_cert = tls::make_verifier(ni.value().cert);
-      crypto::Sha256Hash root = full_state_tree.get_root();
+      crypto::Sha256Hash root = full_state_tree->get_root();
       log_hash(root, VERIFY);
       return from_cert->verify_hash(
         root.h, root.SIZE, sig_value.sig.data(), sig_value.sig.size());
@@ -503,8 +515,8 @@ namespace ccf
 
     void rollback(kv::Version v) override
     {
-      full_state_tree.retract(v);
-      log_hash(full_state_tree.get_root(), ROLLBACK);
+      full_state_tree->retract(v);
+      log_hash(full_state_tree->get_root(), ROLLBACK);
 
       if (is_replicated_tree_enabled())
       {
@@ -515,9 +527,10 @@ namespace ccf
 
     void compact(kv::Version v) override
     {
+      /*
       if (v > MAX_HISTORY_LEN)
-        full_state_tree.flush(v - MAX_HISTORY_LEN);
-      log_hash(full_state_tree.get_root(), COMPACT);
+        full_state_tree->flush(v - MAX_HISTORY_LEN);
+      log_hash(full_state_tree->get_root(), COMPACT);
 
       if (is_replicated_tree_enabled())
       {
@@ -525,6 +538,7 @@ namespace ccf
           replicated_state_tree.flush(v - MAX_HISTORY_LEN);
         log_hash(replicated_state_tree.get_root(), COMPACT);
       }
+      */
     }
 
     void emit_signature() override
@@ -547,18 +561,23 @@ namespace ccf
         [version, view, commit, this]() {
           Store::Tx sig(version);
           auto sig_view = sig.get_view(signatures);
-          crypto::Sha256Hash root = full_state_tree.get_root();
+          crypto::Sha256Hash root = full_state_tree->get_root();
           Signature sig_value(
             id,
             version,
             view,
             commit,
             kp.sign_hash(root.h, root.SIZE),
-            full_state_tree.serialise());
+            full_state_tree->serialise());
           sig_view->put(0, sig_value);
           return sig.commit_reserved();
         },
         true);
+      
+      // Swap the trees
+      historical_trees.emplace(version, std::move(full_state_tree));
+      full_state_tree = std::make_unique<T>(*(historical_trees.rbegin()->second));
+      start_version = version + 1;
 #endif
     }
 
@@ -638,13 +657,23 @@ namespace ccf
 
     std::vector<uint8_t> get_receipt(kv::Version index) override
     {
-      return full_state_tree.get_receipt(index).to_v();
+      return full_state_tree->get_receipt(index).to_v();
     }
 
     bool verify_receipt(const std::vector<uint8_t>& v) override
     {
       auto r = Receipt::from_v(v);
-      return full_state_tree.verify(r);
+      if (r.index < start_version)
+      {
+        auto it = historical_trees.lower_bound(r.index);
+        if (it == historical_trees.end())
+          throw std::runtime_error(fmt::format("Version {} could not be found in historical trees", r.index));
+        return it->second->verify(r);
+      }
+      else
+      {
+        return full_state_tree->verify(r);
+      }
     }
   };
 

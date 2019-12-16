@@ -12,6 +12,7 @@
 #include "node/signatures.h"
 
 #include <doctest/doctest.h>
+#include <random>
 
 extern "C"
 {
@@ -19,6 +20,14 @@ extern "C"
 }
 
 using namespace ccf;
+
+static crypto::Sha256Hash random_hash(std::random_device& rdev)
+{
+  crypto::Sha256Hash h;
+  for (size_t j = 0; j < crypto::Sha256Hash::SIZE; j++)
+    h.h[j] = rdev();
+  return h;
+}
 
 class DummyConsensus : public kv::StubConsensus
 {
@@ -496,6 +505,21 @@ TEST_CASE(
     REQUIRE(tx.commit() == kv::CommitSuccess::OK);
     REQUIRE(consensus->count == 3);
   }
+}
+
+TEST_CASE("Check MerkleTreeHistory copy-ctor")
+{
+  std::random_device r;
+  MerkleTreeHistory mt1;
+
+  auto h1 = random_hash(r);
+  auto h2 = random_hash(r);
+  mt1.append(h1);
+  REQUIRE(mt1.get_root() == h1);
+  mt1.append(h2);
+
+  MerkleTreeHistory mt2(mt1);
+  REQUIRE(mt1.get_root() == mt2.get_root());
 }
 
 // We need an explicit main to initialize kremlib and EverCrypt
