@@ -3,7 +3,6 @@ jobs:
   variables:
     skipComponentGovernanceDetection: true
   displayName: 'GitHub Release'
-  dependsOn: ${{ parameters.depends_on }}
 
   ${{ insert }}: ${{ parameters.env }}
 
