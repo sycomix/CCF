@@ -134,5 +134,3 @@ jobs:
     - template: release.yml
       parameters:
         env: ${{ parameters.env.Release }}
-        depends_on:
-
