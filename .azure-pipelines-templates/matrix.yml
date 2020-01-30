@@ -20,7 +20,7 @@ parameters:
     Release:
       container: nosgx
       pool: Ubuntu-1804-D8s_v3
-      dependsOn: ['BuildAndTest_NoSGX_CFT_FTCP', 'BuildAndTest_NoSGX_CFT_HTTP', 'BuildAndTest_SGX_CFT_FTCP_', 'BuildAndTest_SGX_CFT_HTTP_', 'BuildAndTest_NoSGX_CFT_FTCP_SAN', 'BuildAndTest_SGX_CFT_FTCP_Release', 'BuildAndTest_SGX_CFT_HTTP_Release']
+      dependsOn: ['BuildAndTest_NoSGX_CFT_FTCP_', 'BuildAndTest_NoSGX_CFT_HTTP_', 'BuildAndTest_SGX_CFT_FTCP_', 'BuildAndTest_SGX_CFT_HTTP_', 'BuildAndTest_NoSGX_CFT_FTCP_SAN', 'BuildAndTest_SGX_CFT_FTCP_Release', 'BuildAndTest_SGX_CFT_HTTP_Release']
 
   build:
     common:
