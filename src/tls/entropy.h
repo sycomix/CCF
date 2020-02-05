@@ -5,9 +5,9 @@
 #include "intel_drng.h"
 #include "tls.h"
 
-#include <functional>
-#include <memory>
-#include <vector>
+// #include <memory>
+// #include <utility>
+// #include <vector>
 
 namespace tls
 {
@@ -75,5 +75,4 @@ namespace tls
 
     return std::make_shared<MbedtlsEntropy>();
   }
-
 }

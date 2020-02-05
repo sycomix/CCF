@@ -4,7 +4,7 @@
 
 #include "ds/logger.h"
 #include "kv/kvtypes.h"
-#include "tls/entropy.h"
+// #include "tls/entropy.h"
 
 #include <algorithm>
 #include <nlohmann/json.hpp>
@@ -34,7 +34,9 @@ namespace ccf
     {
       if (random)
       {
-        master = tls::create_entropy()->random(32);
+        // master = tls::create_entropy()->random(32);
+        // TODO:
+        master = {};
       }
     }
 

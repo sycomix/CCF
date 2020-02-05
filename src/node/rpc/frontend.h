@@ -5,13 +5,15 @@
 #include "consts.h"
 #include "ds/buffer.h"
 #include "ds/spinlock.h"
+#include "enclave/forwardertypes.h"
 #include "enclave/rpchandler.h"
-#include "forwarder.h"
 #include "jsonrpc.h"
 #include "node/clientsignatures.h"
 #include "node/nodes.h"
+#include "node/nodetypes.h"
 #include "nodeinterface.h"
 #include "rpcexception.h"
+#include "tls/verifier.h"
 
 #include <fmt/format_header_only.h>
 #include <mutex>
@@ -20,7 +22,8 @@
 
 namespace ccf
 {
-  class RpcFrontend : public enclave::RpcHandler, public ForwardedRpcHandler
+  class RpcFrontend : public enclave::RpcHandler,
+                      public enclave::ForwardedRpcHandler
   {
   protected:
     Store& tables;

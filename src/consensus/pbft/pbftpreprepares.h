@@ -6,7 +6,6 @@
 #include "node/entities.h"
 #include "node/rpc/jsonrpc.h"
 
-#include <array>
 #include <msgpack-c/msgpack.hpp>
 #include <vector>
 

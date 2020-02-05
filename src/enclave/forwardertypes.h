@@ -26,4 +26,13 @@ namespace enclave
       ccf::CallerId caller_id,
       const std::vector<uint8_t>& caller_cert) = 0;
   };
+
+  class ForwardedRpcHandler
+  {
+  public:
+    virtual ~ForwardedRpcHandler() {}
+
+    virtual std::vector<uint8_t> process_forwarded(
+      std::shared_ptr<enclave::RpcContext> fwd_ctx) = 0;
+  };
 }

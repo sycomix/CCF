@@ -158,7 +158,7 @@ if("virtual" IN_LIST TARGET)
            http_parser.host
            lua.host
            secp256k1.host
-           sss.host
+          #  sss.host
            ${CMAKE_THREAD_LIBS_INIT}
   )
 

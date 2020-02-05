@@ -13,7 +13,7 @@
  */
 
 
-#include "randombytes.h"
+// #include "randombytes.h"
 #include "tweetnacl.h"
 #include "sss.h"
 #include "tweetnacl.h"
@@ -70,7 +70,7 @@ void sss_create_shares(sss_Share *out, const unsigned char *data,
 	size_t idx;
 
 	/* Generate a random encryption key */
-	randombytes(key, sizeof(key));
+	// randombytes(key, sizeof(key));
 
 	/* AEAD encrypt the data with the key */
 	memcpy(&m[crypto_secretbox_ZEROBYTES], data, sss_MLEN);

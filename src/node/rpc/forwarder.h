@@ -8,15 +8,6 @@
 
 namespace ccf
 {
-  class ForwardedRpcHandler
-  {
-  public:
-    virtual ~ForwardedRpcHandler() {}
-
-    virtual std::vector<uint8_t> process_forwarded(
-      std::shared_ptr<enclave::RpcContext> fwd_ctx) = 0;
-  };
-
   template <typename ChannelProxy>
   class Forwarder : public enclave::AbstractForwarder
   {
@@ -190,8 +181,8 @@ namespace ccf
               return;
             }
 
-            auto fwd_handler =
-              dynamic_cast<ForwardedRpcHandler*>(handler.value().get());
+            auto fwd_handler = dynamic_cast<enclave::ForwardedRpcHandler*>(
+              handler.value().get());
             if (!fwd_handler)
             {
               LOG_FAIL_FMT(
